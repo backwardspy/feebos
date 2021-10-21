@@ -1,0 +1,42 @@
+{
+    "tasks": [
+        {
+            "group": {
+                "isDefault": true,
+                "kind": "build"
+            },
+            "label": "Build kernel",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "subcommand": "build",
+            "type": "cargo"
+        },
+        {
+            "command": "${workspaceFolder}/build",
+            "group": "build",
+            "label": "Build bootable disk image",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "type": "shell"
+        },
+        {
+            "command": "qemu-system-x86_64",
+            "args": [
+                "-drive",
+                "format=raw,file=${workspaceFolder}/target/x86_64-feebos/debug/boot-bios-feebos.img"
+            ],
+            "dependsOn": [
+                "Build bootable disk image"
+            ],
+            "group": "none",
+            "label": "Launch in qemu",
+            "type": "shell",
+            "problemMatcher": []
+        }
+    ],
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0"
+}

@@ -1,0 +1,8 @@
+[package]
+name = "feebos"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+bootloader = "0.10.9"
+font8x8 = {version = "0.3.1", default-features = false, features = ["unicode"]}

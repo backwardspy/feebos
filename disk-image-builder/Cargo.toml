@@ -1,0 +1,9 @@
+[package]
+name = "disk-image-builder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bootloader-locator = "0.0.4"
+runner-utils = "0.0.2"
+locate-cargo-manifest = "0.2.2"

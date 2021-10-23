@@ -1,60 +1,107 @@
 #![no_std]
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 extern crate font8x8;
 
-mod graphics_context;
+mod fixed_buffer;
+mod graphics;
+mod kernel;
+mod output_buffer;
+mod serial_writer;
 
+use core::fmt::Write;
 use core::panic::PanicInfo;
 
 use bootloader::{entry_point, BootInfo};
 
-use graphics_context::{Color, GraphicsContext};
+use fixed_buffer::FixedBuffer;
+use graphics::Color;
+use kernel::k;
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        let mut gfx = GraphicsContext::new(framebuffer);
-        gfx.clear(Color::BLACK);
-        gfx.text("hello from feebos!", 8, 8, Color::WHITE, Color::BLACK);
+    k().init(boot_info);
 
-        gfx.text(
-            "sweetie16 palette from https://lospec.com/palette-list/sweetie-16",
-            8,
-            24,
-            Color::WHITE,
-            Color::BLACK,
-        );
+    #[cfg(test)]
+    test_main();
 
-        let palette = [
-            (Color::BLACK, "black"),
-            (Color::PURPLE, "purple"),
-            (Color::RED, "red"),
-            (Color::ORANGE, "orange"),
-            (Color::YELLOW, "yellow"),
-            (Color::LIME, "lime"),
-            (Color::GREEN, "green"),
-            (Color::TEAL, "teal"),
-            (Color::DARKBLUE, "darkblue"),
-            (Color::BLUE, "blue"),
-            (Color::LIGHTBLUE, "lightblue"),
-            (Color::CYAN, "cyan"),
-            (Color::WHITE, "white"),
-            (Color::LIGHTGREY, "lightgrey"),
-            (Color::GREY, "grey"),
-            (Color::DARKGREY, "darkgrey"),
-        ];
+    println!("feebos started up successfully.");
+    k().gfx.clear(Color::BLACK);
+    k().gfx
+        .text("welcome to feebos", 10, 10, Color::LIME, Color::BLACK);
 
-        for (i, (color, name)) in palette.iter().enumerate() {
-            gfx.text(name, 8, 32 + 8 * i as u32, *color, Color::BLACK);
-        }
+    loop {}
+}
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+
+    // BSOD! :D
+    const FG: Color = Color::WHITE;
+    const BG: Color = Color::DARKBLUE;
+    k().gfx.clear(BG);
+    k().gfx.text(":(", 10, 10, FG, BG);
+    k().gfx
+        .text("something has gone horribly wrong.", 10, 50, FG, BG);
+    k().gfx.text("please reboot your computer.", 10, 70, FG, BG);
+
+    let mut panic_info_buffer = FixedBuffer::new();
+    write!(panic_info_buffer, "{}", info).unwrap();
+    k().gfx
+        .text(panic_info_buffer.as_str(), 10, 150, Color::ORANGE, BG);
+
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    println!("[failed]\n");
+    println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+enum QemuExitCode {
+    Success = 0x10,
+    Failed = 0x11,
+}
+
+#[cfg(test)]
+fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests...", tests.len());
+    for test in tests {
+        test();
+    }
+    println!("[success]");
+    exit_qemu(QemuExitCode::Success);
+}
+
+#[cfg(test)]
+fn exit_qemu(exit_code: QemuExitCode) -> ! {
+    use x86_64::instructions::port::Port;
+
+    println!("Exiting qemu.");
+    unsafe {
+        let mut port = Port::new(0xf4);
+        port.write(exit_code as u32);
     }
 
     loop {}
 }
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
 }

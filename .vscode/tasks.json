@@ -1,40 +1,56 @@
 {
     "tasks": [
         {
+            "label": "Build kernel",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "kbuild"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
             "group": {
                 "isDefault": true,
                 "kind": "build"
             },
-            "label": "Build kernel",
-            "problemMatcher": [
-                "$rustc"
-            ],
-            "subcommand": "build",
-            "type": "cargo"
         },
         {
-            "command": "${workspaceFolder}/build",
-            "group": "build",
             "label": "Build bootable disk image",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "kimage"
+            ],
             "problemMatcher": [
                 "$rustc"
             ],
-            "type": "shell"
+            "group": "build",
         },
         {
-            "command": "qemu-system-x86_64",
-            "args": [
-                "-drive",
-                "format=raw,file=${workspaceFolder}/target/x86_64-feebos/debug/boot-bios-feebos.img"
-            ],
-            "dependsOn": [
-                "Build bootable disk image"
-            ],
-            "group": "none",
-            "label": "Launch in qemu",
+            "label": "Run in qemu",
             "type": "shell",
-            "problemMatcher": []
-        }
+            "command": "cargo",
+            "args": [
+                "krun"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build",
+        },
+        {
+            "label": "Run tests in qemu",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "ktest"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build",
+        },
     ],
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format

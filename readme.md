@@ -16,23 +16,9 @@ rustup default nightly
 rustup component add rust-src llvm-tools-preview
 ```
 
-## building a bootable feebos image
+## building and running
 
-_note: running the build script requires python 3. you can build without running
-the script, you'll just need to check the script and run the same commands in
-the same order._
-
-```shell
-./build          # for a debug image
-./build release  # for a release image
-```
-
-## running feebos in qemu
-
-once you've got a bootable image, run it in qemu like so:
-
-```shell
-qemu-system-x86_64 -drive format=raw,file=target/x86_64-feebos/debug/boot-bios-feebos.img
-```
-
-replace `debug` with `release` if you're running a release build.
+`cargo kbuild` builds the kernel binary
+`cargo kimage` builds the kernel and disk image
+`cargo krun` builds the kernel and disk image, then launches it in qemu
+`cargo ktest` builds the kernel and disk image, then runs the tests in a headless qemu

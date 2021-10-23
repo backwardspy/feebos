@@ -9,7 +9,7 @@ pub struct Color {
 }
 
 pub struct GraphicsContext<'a> {
-    fb: &'a mut FrameBuffer,
+    fb: Option<&'a mut FrameBuffer>,
 }
 
 impl Color {
@@ -32,11 +32,7 @@ impl Color {
     pub const DARKGREY: Color = Color::from_hex(0x333C57);
 
     pub const fn new(red: u8, green: u8, blue: u8) -> Color {
-        Color {
-            red: red,
-            green: green,
-            blue: blue,
-        }
+        Color { red, green, blue }
     }
 
     pub const fn from_hex(hex: u32) -> Color {
@@ -49,16 +45,20 @@ impl Color {
 }
 
 impl<'a> GraphicsContext<'a> {
-    pub fn new(fb: &mut FrameBuffer) -> GraphicsContext {
-        GraphicsContext { fb: fb }
+    pub fn new() -> GraphicsContext<'a> {
+        GraphicsContext { fb: None }
+    }
+
+    pub fn set_framebuffer(&mut self, fb: &'a mut FrameBuffer) {
+        self.fb = Some(fb);
     }
 
     pub fn width(&self) -> u32 {
-        self.fb.info().horizontal_resolution as u32
+        self.fb.as_ref().unwrap().info().horizontal_resolution as u32
     }
 
     pub fn height(&self) -> u32 {
-        self.fb.info().vertical_resolution as u32
+        self.fb.as_ref().unwrap().info().vertical_resolution as u32
     }
 
     pub fn clear(&mut self, colour: Color) {
@@ -70,31 +70,31 @@ impl<'a> GraphicsContext<'a> {
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
-        let fbinfo = self.fb.info();
+        let fbinfo = self.fb.as_ref().unwrap().info();
         let pixel_index = (y as usize * fbinfo.stride + x as usize) * fbinfo.bytes_per_pixel;
-        let buffer = self.fb.buffer_mut();
+        let buffer = self.fb.as_mut().unwrap().buffer_mut();
         buffer[pixel_index] = color.blue;
         buffer[pixel_index + 1] = color.green;
         buffer[pixel_index + 2] = color.red;
     }
 
-    pub fn text(&mut self, string: &str, x: u32, y: u32, fg: Color, bg: Color) {
-        for (char_x_offset, char) in string.chars().enumerate() {
-            if let Some(glyph) = BASIC_FONTS.get(char) {
-                for (y_offset, row) in glyph.iter().enumerate() {
-                    for bit in 0..8 {
-                        let colour = match *row & 1 << bit {
-                            0 => bg,
-                            _ => fg,
-                        };
-                        self.set_pixel(
-                            x + char_x_offset as u32 * 8 + bit,
-                            y + y_offset as u32,
-                            colour,
-                        )
-                    }
+    pub fn char(&mut self, c: char, x: u32, y: u32, fg: Color, bg: Color) {
+        if let Some(glyph) = BASIC_FONTS.get(c) {
+            for (y_offset, row) in glyph.iter().enumerate() {
+                for bit in 0..8 {
+                    let colour = match *row & 1 << bit {
+                        0 => bg,
+                        _ => fg,
+                    };
+                    self.set_pixel(x + bit, y + y_offset as u32, colour)
                 }
             }
+        }
+    }
+
+    pub fn text(&mut self, string: &str, x: u32, y: u32, fg: Color, bg: Color) {
+        for (char_x_offset, char) in string.chars().enumerate() {
+            self.char(char, x + char_x_offset as u32 * 8, y, fg, bg);
         }
     }
 }

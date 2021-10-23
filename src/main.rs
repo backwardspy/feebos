@@ -12,12 +12,10 @@ mod kernel;
 mod output_buffer;
 mod serial_writer;
 
-use core::fmt::Write;
 use core::panic::PanicInfo;
 
 use bootloader::{entry_point, BootInfo};
 
-use fixed_buffer::FixedBuffer;
 use graphics::Color;
 use kernel::k;
 
@@ -40,6 +38,9 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    use core::fmt::Write;
+    use fixed_buffer::FixedBuffer;
+
     println!("{}", info);
 
     // BSOD! :D

@@ -18,6 +18,7 @@ rustup component add rust-src llvm-tools-preview
 
 ## building and running
 
+`cargo kclippy` to run clippy (linter)
 `cargo kbuild` builds the kernel binary
 `cargo kimage` builds the kernel and disk image
 `cargo krun` builds the kernel and disk image, then launches it in qemu

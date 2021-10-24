@@ -8,6 +8,10 @@ members = [
     "disk-image-builder",
 ]
 
+[[test]]
+name = "should_panic"
+harness = false
+
 [dependencies]
 bootloader = "0.10.9"
 font8x8 = {version = "0.3.1", default-features = false, features = ["unicode"]}

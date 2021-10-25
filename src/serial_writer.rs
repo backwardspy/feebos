@@ -2,43 +2,28 @@ use core::fmt;
 
 use uart_16550::SerialPort;
 
-use crate::kernel::KERNEL;
+const SERIAL_IO_PORT: u16 = 0x3F8;
 
-pub struct SerialWriter {
-    port: SerialPort,
-}
-
-impl SerialWriter {
-    pub fn new(port: u16) -> SerialWriter {
-        let mut port = unsafe { SerialPort::new(port) };
-        port.init();
-        SerialWriter { port }
-    }
-}
-
-impl fmt::Write for SerialWriter {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        for c in s.chars() {
-            self.port.send(c as u8);
-        }
-        Ok(())
-    }
-}
+pub static SERIAL: spin::Mutex<SerialPort> =
+    spin::Mutex::new(unsafe { SerialPort::new(SERIAL_IO_PORT) });
 
 #[macro_export]
-macro_rules! print {
+macro_rules! serial_print {
     ($($arg:tt)*) => ($crate::serial_writer::_print(format_args!($($arg)*)));
 }
 
 #[macro_export]
-macro_rules! println {
-    () => ($crate::print!("\n"));
+macro_rules! serial_println {
+    () => ($crate::serial_print!("\n"));
     ($($arg:tt)*) => ({
-        $crate::print!("{}\n", format_args!($($arg)*));
+        $crate::serial_print!("{}\n", format_args!($($arg)*));
     })
 }
 
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    KERNEL.lock().serial_writer.write_fmt(args).unwrap();
+
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        SERIAL.lock().write_fmt(args).unwrap();
+    });
 }

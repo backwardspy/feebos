@@ -1,6 +1,7 @@
 #![no_std]
-#![cfg_attr(test, no_main)]
+#![feature(abi_x86_interrupt)]
 #![feature(custom_test_frameworks)]
+#![cfg_attr(test, no_main)]
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -9,19 +10,29 @@ use core::panic::PanicInfo;
 #[cfg(test)]
 use bootloader::{entry_point, BootInfo};
 
-pub mod fixed_buffer;
+#[cfg(test)]
+use kernel::k;
+
+pub mod gdt;
 pub mod graphics;
+pub mod interrupts;
 pub mod kernel;
-pub mod output_buffer;
 pub mod serial_writer;
+
+pub fn halt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
 
 #[cfg(test)]
 entry_point!(test_entry_point);
 
 #[cfg(test)]
-fn test_entry_point(_: &'static mut BootInfo) -> ! {
+fn test_entry_point(boot_info: &'static mut BootInfo) -> ! {
+    k().init(boot_info);
     test_main();
-    loop {}
+    halt_loop();
 }
 
 #[cfg(test)]
@@ -31,13 +42,13 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 pub fn test_panic_handler(info: &PanicInfo) -> ! {
-    println!("[failed]\n");
-    println!("Error: {}\n", info);
+    serial_println!("[failed]");
+    serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
 }
 
 pub trait Testable {
-    fn run(&self) -> ();
+    fn run(&self);
 }
 
 impl<T> Testable for T
@@ -45,8 +56,9 @@ where
     T: Fn(),
 {
     fn run(&self) {
+        serial_print!("{:.<76}", core::any::type_name::<T>());
         self();
-        println!("{:.<76}[ok]", core::any::type_name::<T>());
+        serial_println!("[ok]")
     }
 }
 
@@ -60,20 +72,20 @@ pub enum QemuExitCode {
 pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     use x86_64::instructions::port::Port;
 
-    println!("Exiting qemu.");
+    serial_println!("Exiting qemu.");
     unsafe {
-        let mut port = Port::new(0xf4);
+        let mut port = Port::new(0xF4);
         port.write(exit_code as u32);
     }
 
-    loop {}
+    halt_loop();
 }
 
 pub fn test_runner(tests: &[&dyn Testable]) -> ! {
-    println!("Running {} tests...", tests.len());
+    serial_println!("Running {} test(s)...", tests.len());
     for test in tests {
         test.run();
     }
-    println!("[success]");
+    serial_println!("[success]");
     exit_qemu(QemuExitCode::Success);
 }

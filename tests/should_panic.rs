@@ -3,22 +3,25 @@
 
 use core::panic::PanicInfo;
 
-use feebos::{exit_qemu, println, QemuExitCode};
+use bootloader::{entry_point, BootInfo};
+use feebos::{exit_qemu, kernel::k, serial_print, serial_println, QemuExitCode};
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+entry_point!(test_entry_point);
+
+fn test_entry_point(boot_info: &'static mut BootInfo) -> ! {
+    k().init(boot_info);
     should_fail();
-    println!("[test did not panic]");
+    serial_println!("[test did not panic]");
     exit_qemu(QemuExitCode::Failed);
 }
 
 fn should_fail() {
-    println!("should_panic::should_fail...\t");
+    serial_print!("{:.<76}", "should_panic::should_fail");
     assert_eq!(1, 0);
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    println!("[ok]");
+    serial_println!("[ok]");
     exit_qemu(QemuExitCode::Success);
 }

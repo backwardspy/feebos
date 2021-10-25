@@ -2,25 +2,29 @@ use bootloader::BootInfo;
 use lazy_static::lazy_static;
 use spin::{Mutex, MutexGuard};
 
-use crate::graphics::GraphicsContext;
-use crate::serial_writer::SerialWriter;
-
-const SERIAL_IO_PORT: u16 = 0x3F8;
+use crate::{gdt, graphics::GraphicsContext, interrupts};
 
 pub struct Kernel {
     pub gfx: GraphicsContext<'static>,
-    pub serial_writer: SerialWriter,
 }
 
 lazy_static! {
     pub static ref KERNEL: Mutex<Kernel> = Mutex::new(Kernel {
         gfx: GraphicsContext::new(),
-        serial_writer: SerialWriter::new(SERIAL_IO_PORT),
     });
 }
 
 impl Kernel {
     pub fn init(&mut self, boot_info: &'static mut BootInfo) {
+        // load GDT and TSS
+        gdt::init();
+
+        // load IDT and initialise PICs
+        interrupts::init();
+
+        // enable interrupts
+        x86_64::instructions::interrupts::enable();
+
         if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
             self.gfx.set_framebuffer(framebuffer);
         }

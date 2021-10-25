@@ -4,15 +4,17 @@
 #![test_runner(feebos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 
-use feebos::println;
+use feebos::{halt_loop, kernel::k};
 
-#[cfg(test)]
-#[no_mangle] // don't mangle the name of this function
-pub extern "C" fn _start() -> ! {
+entry_point!(test_entry_point);
+
+fn test_entry_point(boot_info: &'static mut BootInfo) -> ! {
+    k().init(boot_info);
     test_main();
-    loop {}
+    halt_loop();
 }
 
 #[panic_handler]
@@ -21,6 +23,6 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[test_case]
-fn test_println_does_not_panic() {
-    println!("test_println_does_not_panic output");
+fn test_simple_assertion() {
+    assert_eq!(1, 1);
 }

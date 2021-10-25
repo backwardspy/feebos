@@ -45,8 +45,8 @@ impl Color {
 }
 
 impl<'a> GraphicsContext<'a> {
-    pub fn new() -> GraphicsContext<'a> {
-        GraphicsContext { fb: None }
+    pub fn new() -> Self {
+        Self { fb: None }
     }
 
     pub fn set_framebuffer(&mut self, fb: &'a mut FrameBuffer) {
@@ -96,5 +96,11 @@ impl<'a> GraphicsContext<'a> {
         for (char_x_offset, char) in string.chars().enumerate() {
             self.char(char, x + char_x_offset as u32 * 8, y, fg, bg);
         }
+    }
+}
+
+impl<'a> Default for GraphicsContext<'a> {
+    fn default() -> Self {
+        Self::new()
     }
 }

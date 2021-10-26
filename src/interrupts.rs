@@ -4,6 +4,7 @@ use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use pic8259::ChainedPics;
 use x86_64::{
     instructions::port::Port,
+    registers::control::Cr2,
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
 };
 
@@ -63,11 +64,12 @@ lazy_static! {
             .set_handler_fn(stack_segment_fault_handler);
         idt.general_protection_fault
             .set_handler_fn(general_protection_fault_handler);
-        unsafe {
-            idt.page_fault
-                .set_handler_fn(page_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
-        }
+        // unsafe {
+        //     idt.page_fault
+        //         .set_handler_fn(page_fault_handler)
+        //         .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+        // }
+        idt.page_fault.set_handler_fn(page_fault_handler);
         idt.x87_floating_point
             .set_handler_fn(x87_floating_point_handler);
         idt.alignment_check.set_handler_fn(alignment_check_handler);
@@ -173,8 +175,10 @@ extern "x86-interrupt" fn page_fault_handler(
     error_code: PageFaultErrorCode,
 ) {
     panic!(
-        "EXCEPTION: PAGE FAULT ({:?})\n{:#?}",
-        error_code, stack_frame
+        "EXCEPTION: PAGE FAULT ({:?})\nAddress: {:?}\n{:#?}",
+        error_code,
+        Cr2::read(),
+        stack_frame
     );
 }
 
@@ -244,7 +248,11 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 }
 
 pub fn init() {
+    serial_println!("Initialising interrupts...");
+    serial_println!("Loading IDT...");
     IDT.load();
+
+    serial_println!("Initialising PICS...");
     unsafe {
         PICS.lock().initialize();
     }

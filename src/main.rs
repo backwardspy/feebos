@@ -4,17 +4,17 @@
 #![test_runner(feebos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+extern crate alloc;
+
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use feebos::{graphics::Color, halt_loop, kernel::k, serial_println};
-
-extern crate font8x8;
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     k().init(boot_info);
-    serial_println!("feebos kernel initialised");
+    serial_println!("Kernel initialisation completed.");
 
     #[cfg(test)]
     test_main();

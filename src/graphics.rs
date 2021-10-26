@@ -1,6 +1,8 @@
 use bootloader::boot_info::FrameBuffer;
 use font8x8::{UnicodeFonts, BASIC_FONTS};
 
+use crate::serial_println;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
     red: u8,
@@ -46,6 +48,7 @@ impl Color {
 
 impl<'a> GraphicsContext<'a> {
     pub fn new() -> Self {
+        serial_println!("Creating new graphics context...");
         Self { fb: None }
     }
 

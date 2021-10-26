@@ -1,9 +1,20 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
+#![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
 #![cfg_attr(test, no_main)]
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
+
+pub mod allocator;
+pub mod gdt;
+pub mod graphics;
+pub mod interrupts;
+pub mod kernel;
+pub mod memory;
+pub mod serial_writer;
+
+extern crate alloc;
 
 use core::panic::PanicInfo;
 
@@ -13,13 +24,8 @@ use bootloader::{entry_point, BootInfo};
 #[cfg(test)]
 use kernel::k;
 
-pub mod gdt;
-pub mod graphics;
-pub mod interrupts;
-pub mod kernel;
-pub mod serial_writer;
-
 pub fn halt_loop() -> ! {
+    serial_println!("Kernel entering halt loop!");
     loop {
         x86_64::instructions::hlt();
     }

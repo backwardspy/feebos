@@ -64,11 +64,6 @@ lazy_static! {
             .set_handler_fn(stack_segment_fault_handler);
         idt.general_protection_fault
             .set_handler_fn(general_protection_fault_handler);
-        // unsafe {
-        //     idt.page_fault
-        //         .set_handler_fn(page_fault_handler)
-        //         .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
-        // }
         idt.page_fault.set_handler_fn(page_fault_handler);
         idt.x87_floating_point
             .set_handler_fn(x87_floating_point_handler);

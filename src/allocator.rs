@@ -7,8 +7,6 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::serial_println;
-
 pub const HEAP_START: usize = 0x4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
@@ -27,8 +25,6 @@ pub fn init_heap(
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {
-    serial_println!("Initialising heap...");
-
     // get enough pages to cover the required heap size
     let page_range = {
         let first_address = VirtAddr::new(HEAP_START as u64);

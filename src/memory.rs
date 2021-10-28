@@ -5,8 +5,6 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
-use crate::serial_println;
-
 pub struct MemoryRegionsFrameAllocator {
     memory_regions: &'static MemoryRegions,
     next: usize,
@@ -16,10 +14,6 @@ impl MemoryRegionsFrameAllocator {
     /// # Safety
     /// The caller must guarantee the passed memory regions are valid & usable.
     pub unsafe fn init(memory_regions: &'static MemoryRegions) -> Self {
-        serial_println!(
-            "Initialising frame allocator with memory regions: {:?}",
-            memory_regions
-        );
         Self {
             memory_regions,
             next: 0,
@@ -54,10 +48,6 @@ unsafe impl FrameAllocator<Size4KiB> for MemoryRegionsFrameAllocator {
 /// The caller must guarantee physical memory is mapped prior to calling this function.
 /// The caller must only call this function once, to avoid aliasing the mut reference to the table.
 pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
-    serial_println!(
-        "Initialising page table with physical memory offset: {:?}",
-        physical_memory_offset
-    );
     OffsetPageTable::new(
         active_level4_table(physical_memory_offset),
         physical_memory_offset,

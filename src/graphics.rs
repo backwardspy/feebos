@@ -1,7 +1,7 @@
 use bootloader::boot_info::FrameBuffer;
 use font8x8::{UnicodeFonts, BASIC_FONTS};
 
-use crate::serial_println;
+use crate::text_buffer::TextBuffer;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
@@ -48,7 +48,6 @@ impl Color {
 
 impl<'a> GraphicsContext<'a> {
     pub fn new() -> Self {
-        serial_println!("Creating new graphics context...");
         Self { fb: None }
     }
 
@@ -74,11 +73,23 @@ impl<'a> GraphicsContext<'a> {
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
         let fbinfo = self.fb.as_ref().unwrap().info();
-        let pixel_index = (y as usize * fbinfo.stride + x as usize) * fbinfo.bytes_per_pixel;
-        let buffer = self.fb.as_mut().unwrap().buffer_mut();
-        buffer[pixel_index] = color.blue;
-        buffer[pixel_index + 1] = color.green;
-        buffer[pixel_index + 2] = color.red;
+        let x = x as usize;
+        let y = y as usize;
+        if x >= fbinfo.horizontal_resolution || y >= fbinfo.vertical_resolution {
+            return;
+        }
+
+        let stride = fbinfo.stride;
+        let bpp = fbinfo.bytes_per_pixel;
+
+        let pixel_index = (y * stride + x) * bpp;
+        let colour = match fbinfo.pixel_format {
+            bootloader::boot_info::PixelFormat::RGB => [color.red, color.green, color.blue, 0],
+            bootloader::boot_info::PixelFormat::U8 => [color.red, 0, 0, 0],
+            _ => [color.blue, color.green, color.red, 0], // we assume BGR as it seems to be quite common
+        };
+        self.fb.as_mut().unwrap().buffer_mut()[pixel_index..pixel_index + bpp]
+            .copy_from_slice(&colour[..bpp]);
     }
 
     pub fn char(&mut self, c: char, x: u32, y: u32, fg: Color, bg: Color) {
@@ -100,10 +111,42 @@ impl<'a> GraphicsContext<'a> {
             self.char(char, x + char_x_offset as u32 * 8, y, fg, bg);
         }
     }
+
+    pub fn text_buffer(
+        &mut self,
+        text_buffer: &mut TextBuffer,
+        padding: u32,
+        line_spacing: u32,
+        fg: Color,
+        bg: Color,
+    ) {
+        let width = text_buffer.width;
+        for cursor in text_buffer.dirty() {
+            self.char(
+                text_buffer.at(cursor),
+                padding + 8 * (cursor % width) as u32,
+                padding + (8 + line_spacing) * (cursor / width) as u32,
+                fg,
+                bg,
+            );
+        }
+        text_buffer.mark_all_clean();
+    }
 }
 
 impl<'a> Default for GraphicsContext<'a> {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn calculate_text_buffer_size(
+    width: u32,
+    height: u32,
+    padding: u32,
+    spacing: u32,
+) -> (usize, usize) {
+    let xspace = (width - padding * 2) / 8;
+    let yspace = (height - padding * 2) / (8 + spacing);
+    (xspace as usize, yspace as usize)
 }

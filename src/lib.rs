@@ -13,7 +13,9 @@ pub mod interrupts;
 pub mod kernel;
 pub mod memory;
 pub mod serial_writer;
+pub mod text_buffer;
 
+#[macro_use]
 extern crate alloc;
 
 use core::panic::PanicInfo;

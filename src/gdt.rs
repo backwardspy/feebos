@@ -11,8 +11,6 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::serial_println;
-
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 struct Selectors {
@@ -59,19 +57,14 @@ lazy_static! {
 }
 
 pub fn init() {
-    serial_println!("Loading GDT...");
     GDT.0.load();
 
-    serial_println!("Initialising segment registers...");
     unsafe {
         CS::set_reg(GDT.1.code_selector);
         ES::set_reg(GDT.1.data_selector);
         DS::set_reg(GDT.1.data_selector);
         SS::set_reg(GDT.1.data_selector);
-    }
 
-    serial_println!("Loading TSS...");
-    unsafe {
         load_tss(GDT.1.tss_selector);
     }
 }

@@ -8,20 +8,41 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use feebos::{graphics::Color, halt_loop, kernel::k, serial_println};
+use feebos::{
+    graphics::{self, Color},
+    halt_loop,
+    kernel::k,
+    println,
+    text_buffer::SHELL,
+};
 
 entry_point!(kernel_main);
 
+const SHELL_PADDING: u32 = 8;
+const SHELL_LINE_SPACING: u32 = 2;
+
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     k().init(boot_info);
-    serial_println!("Kernel initialisation completed.");
 
     #[cfg(test)]
     test_main();
 
+    let width = k().gfx.width();
+    let height = k().gfx.height();
+    let (buf_width, buf_height) =
+        graphics::calculate_text_buffer_size(width, height, SHELL_PADDING, SHELL_LINE_SPACING);
+    SHELL.lock().resize(buf_width, buf_height);
+
+    println!("welcome to feebos");
+
     k().gfx.clear(Color::BLACK);
-    k().gfx
-        .text("welcome to feebos", 10, 10, Color::WHITE, Color::BLACK);
+    k().gfx.text_buffer(
+        &mut SHELL.lock(),
+        SHELL_PADDING,
+        SHELL_LINE_SPACING,
+        Color::WHITE,
+        Color::BLACK,
+    );
 
     halt_loop();
 }
@@ -29,25 +50,18 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("{}", info);
+    const FG: Color = Color::WHITE;
+    const BG: Color = Color::DARKBLUE;
 
-    // // BSOD! :D
-    // const FG: Color = Color::WHITE;
-    // const BG: Color = Color::DARKBLUE;
-    // k().gfx.clear(BG);
-    // k().gfx.text(":(", 10, 10, FG, BG);
-    // k().gfx
-    //     .text("something has gone horribly wrong.", 10, 50, FG, BG);
-    // k().gfx.text("please reboot your computer.", 10, 70, FG, BG);
+    SHELL.lock().clear();
+    println!(":<\n");
+    println!("something has gone horribly wrong.");
+    println!("please reboot your computer.\n\n");
+    println!("{}", info);
 
-    // // TODO: print the stack trace. ideally we'd like to allocate a string for this.
-    // k().gfx.text(
-    //     "check serial output for error details",
-    //     10,
-    //     150,
-    //     Color::ORANGE,
-    //     BG,
-    // );
+    k().gfx.clear(BG);
+    k().gfx
+        .text_buffer(&mut SHELL.lock(), SHELL_PADDING, SHELL_LINE_SPACING, FG, BG);
 
     halt_loop();
 }

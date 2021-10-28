@@ -3,7 +3,6 @@ use crate::{
     graphics::GraphicsContext,
     interrupts,
     memory::{self, MemoryRegionsFrameAllocator},
-    serial_println,
 };
 use bootloader::BootInfo;
 use lazy_static::lazy_static;
@@ -22,8 +21,6 @@ lazy_static! {
 
 impl Kernel {
     pub fn init(&mut self, boot_info: &'static mut BootInfo) {
-        serial_println!("Initializing kernel...");
-
         // load GDT and TSS
         gdt::init();
 

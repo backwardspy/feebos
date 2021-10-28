@@ -243,11 +243,8 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 }
 
 pub fn init() {
-    serial_println!("Initialising interrupts...");
-    serial_println!("Loading IDT...");
     IDT.load();
 
-    serial_println!("Initialising PICS...");
     unsafe {
         PICS.lock().initialize();
     }
